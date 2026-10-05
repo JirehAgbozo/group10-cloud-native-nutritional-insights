@@ -16,14 +16,24 @@ BLOB_NAME = "All_Diets.csv"
 OUTPUT_FILE = "nutritional_averages.json"
 
 
+def calculate_averages(dataframe):
+    averages = (
+        dataframe.groupby("Diet_type")[["Protein(g)", "Carbs(g)", "Fat(g)"]]
+        .mean()
+        .round(2)
+        .reset_index()
+    )
+
+    return averages.to_dict(orient="records")
+
+
 def lambda_handler(event=None, context=None):
     print("Connecting to Azurite Blob Storage...")
 
     blob_service_client = BlobServiceClient.from_connection_string(
-    AZURITE_CONNECTION_STRING,
-    api_version="2019-07-07"
+        AZURITE_CONNECTION_STRING,
+        api_version="2019-07-07"
     )
-    
 
     blob_client = blob_service_client.get_blob_client(
         container=CONTAINER_NAME,
@@ -38,14 +48,7 @@ def lambda_handler(event=None, context=None):
 
     print(f"Successfully loaded {len(dataframe)} rows.")
 
-    averages = (
-        dataframe.groupby("Diet_type")[["Protein(g)", "Carbs(g)", "Fat(g)"]]
-        .mean()
-        .round(2)
-        .reset_index()
-    )
-
-    results = averages.to_dict(orient="records")
+    results = calculate_averages(dataframe)
 
     with open(OUTPUT_FILE, "w") as output_file:
         json.dump(results, output_file, indent=4)
